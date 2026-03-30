@@ -64,6 +64,22 @@ function updatePlatformLabels() {
 // --- Core Functions ---
 
 /**
+ * Syncs the `.selected` CSS class on each `.option` element to match which
+ * radio button is currently checked.
+ *
+ * Using a JS-managed class avoids relying on the CSS `:has()` selector, which
+ * requires Chrome 105+.
+ */
+function syncSelectedClass() {
+  const radios = document.querySelectorAll('input[name="lineBreakKey"]');
+  radios.forEach((radio) => {
+    const option = radio.closest('.option');
+    if (!option) return;
+    option.classList.toggle('selected', radio.checked);
+  });
+}
+
+/**
  * Reads the saved line break key from chrome.storage.sync and checks the
  * matching radio button in the popup.
  */
@@ -73,6 +89,7 @@ function loadSetting() {
     radios.forEach((radio) => {
       radio.checked = radio.value === data.lineBreakKey;
     });
+    syncSelectedClass();
   });
 }
 
@@ -82,6 +99,7 @@ function loadSetting() {
  */
 function handleChange(event) {
   const selectedKey = event.target.value;
+  syncSelectedClass();
   chrome.storage.sync.set({ lineBreakKey: selectedKey }, () => {
     showStatus('保存しました ✓');
   });
@@ -135,6 +153,7 @@ if (typeof module !== 'undefined' && module.exports) {
     isMac,
     getPlatformKeyLabels,
     updatePlatformLabels,
+    syncSelectedClass,
     loadSetting,
     handleChange,
     showStatus,

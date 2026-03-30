@@ -14,7 +14,8 @@ let lineBreakKey = DEFAULT_LINE_BREAK_KEY;
  * Checks whether a keyboard event matches the configured line break key combo.
  *
  * Cross-platform notes:
- *   - 'Ctrl+Enter'  accepts both Ctrl (Windows/Linux) and ⌘ Command / Meta (Mac).
+ *   - 'Ctrl+Enter'  accepts Ctrl (Windows/Linux) or ⌘ Command / Meta (Mac), but
+ *                   not both at the same time (Ctrl+⌘+Enter is rejected).
  *   - 'Alt+Enter'   accepts Alt (Windows/Linux) and ⌥ Option (Mac); both set
  *                   event.altKey = true in Chrome on all platforms.
  *   - Modifier combinations that include extra keys are intentionally rejected
@@ -35,7 +36,11 @@ function matchesLineBreakKey(event, key) {
     case 'Ctrl+Enter':
       // ctrlKey  → Ctrl on Windows / Linux
       // metaKey  → ⌘ Command on Mac
-      return (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
+      // Require exactly one of the two; reject if both are held simultaneously.
+      return (event.ctrlKey || event.metaKey) &&
+        !(event.ctrlKey && event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey;
     case 'Alt+Enter':
       // altKey → Alt on Windows / Linux, ⌥ Option on Mac
       // Exclude metaKey so that ⌘+⌥+Enter does not accidentally match.
@@ -58,7 +63,14 @@ function isGoogleChatInput(target) {
   if (tagName === 'textarea') return true;
 
   if (typeof target.getAttribute === 'function') {
-    if (target.getAttribute('contenteditable') !== null) return true;
+    const contentEditable = target.getAttribute('contenteditable');
+    if (
+      contentEditable === '' ||
+      contentEditable === 'true' ||
+      contentEditable === 'plaintext-only'
+    ) {
+      return true;
+    }
     if (target.getAttribute('role') === 'textbox') return true;
   }
 
@@ -113,7 +125,10 @@ function handleKeyDown(event) {
  */
 function onStorageChanged(changes, area) {
   if (area === 'sync' && changes.lineBreakKey) {
-    lineBreakKey = changes.lineBreakKey.newValue;
+    lineBreakKey =
+      changes.lineBreakKey.newValue !== undefined
+        ? changes.lineBreakKey.newValue
+        : DEFAULT_LINE_BREAK_KEY;
   }
 }
 
@@ -124,9 +139,9 @@ function onStorageChanged(changes, area) {
 function init() {
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
     lineBreakKey = data.lineBreakKey;
+    document.addEventListener('keydown', handleKeyDown, true);
   });
   chrome.storage.onChanged.addListener(onStorageChanged);
-  document.addEventListener('keydown', handleKeyDown, true);
 }
 
 // --- Entry Point ---

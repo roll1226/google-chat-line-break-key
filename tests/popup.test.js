@@ -14,10 +14,10 @@
 function setupDOM() {
   document.body.innerHTML = `
     <div id="status" class="status"></div>
-    <input type="radio" name="lineBreakKey" value="Enter" />
-    <input type="radio" name="lineBreakKey" value="Shift+Enter" />
-    <input type="radio" name="lineBreakKey" value="Ctrl+Enter" />
-    <input type="radio" name="lineBreakKey" value="Alt+Enter" />
+    <label class="option"><input type="radio" name="lineBreakKey" value="Enter" /></label>
+    <label class="option"><input type="radio" name="lineBreakKey" value="Shift+Enter" /></label>
+    <label class="option"><input type="radio" name="lineBreakKey" value="Ctrl+Enter" /></label>
+    <label class="option"><input type="radio" name="lineBreakKey" value="Alt+Enter" /></label>
   `;
 }
 
@@ -85,6 +85,50 @@ describe('loadSetting', () => {
   });
 });
 
+// ── syncSelectedClass ─────────────────────────────────────────────────────
+
+describe('syncSelectedClass', () => {
+  it('adds "selected" to the parent .option of the checked radio', () => {
+    global.chrome = makeChromeStorage('Enter');
+    const { syncSelectedClass } = require('../src/popup');
+
+    const radio = document.querySelector('input[value="Shift+Enter"]');
+    radio.checked = true;
+    syncSelectedClass();
+
+    const option = radio.closest('.option');
+    expect(option.classList.contains('selected')).toBe(true);
+  });
+
+  it('removes "selected" from unchecked option parents', () => {
+    global.chrome = makeChromeStorage('Enter');
+    const { syncSelectedClass } = require('../src/popup');
+
+    // Mark all as checked first, then sync
+    document.querySelectorAll('input[name="lineBreakKey"]').forEach((r) => {
+      r.closest('.option').classList.add('selected');
+    });
+
+    const radio = document.querySelector('input[value="Enter"]');
+    radio.checked = true;
+    syncSelectedClass();
+
+    const unchecked = document.querySelector('input[value="Shift+Enter"]');
+    expect(unchecked.closest('.option').classList.contains('selected')).toBe(false);
+  });
+
+  it('does nothing when .option wrapper is absent', () => {
+    // No .option wrappers in this DOM
+    document.body.innerHTML = `
+      <div id="status"></div>
+      <input type="radio" name="lineBreakKey" value="Enter" checked />
+    `;
+    global.chrome = makeChromeStorage('Enter');
+    const { syncSelectedClass } = require('../src/popup');
+    expect(() => syncSelectedClass()).not.toThrow();
+  });
+});
+
 // ── handleChange ──────────────────────────────────────────────────────────
 
 describe('handleChange', () => {
@@ -126,6 +170,23 @@ describe('handleChange', () => {
     const statusEl = document.getElementById('status');
     expect(statusEl.classList.contains('show')).toBe(true);
     expect(statusEl.textContent).toBeTruthy();
+  });
+  it('updates the .selected class on the chosen option', () => {
+    global.chrome = makeChromeStorage('Enter');
+    const { handleChange } = require('../src/popup');
+
+    const radio = document.querySelector('input[value="Ctrl+Enter"]');
+    radio.checked = true;
+    handleChange({ target: radio });
+
+    expect(radio.closest('.option').classList.contains('selected')).toBe(true);
+    // Other options must NOT be selected
+    const others = [...document.querySelectorAll('input[name="lineBreakKey"]')].filter(
+      (r) => r.value !== 'Ctrl+Enter'
+    );
+    others.forEach((r) => {
+      expect(r.closest('.option').classList.contains('selected')).toBe(false);
+    });
   });
 });
 
@@ -169,10 +230,17 @@ describe('showStatus', () => {
 // ── isMac / getPlatformKeyLabels ──────────────────────────────────────────
 
 describe('isMac', () => {
+  let originalPlatform;
+
+  beforeEach(() => {
+    // Capture the original value before any test mutates it.
+    originalPlatform = navigator.platform;
+  });
+
   afterEach(() => {
-    // Restore navigator.platform to its jsdom default after each test.
+    // Restore the captured original value.
     Object.defineProperty(navigator, 'platform', {
-      value: navigator.platform,
+      value: originalPlatform,
       writable: true,
       configurable: true,
     });

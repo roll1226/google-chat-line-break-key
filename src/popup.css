@@ -128,8 +128,9 @@ body {
   background-color: var(--hover-bg);
 }
 
-/* Selected state – works in all modern browsers */
-.option:has(input:checked) {
+/* Selected state – toggled via JS (.selected class) to avoid `:has()` which
+   requires Chrome 105+. */
+.option.selected {
   background-color: var(--selected-bg);
   border-color: var(--selected-border);
 }
@@ -150,7 +151,7 @@ body {
   line-height: 1.4;
 }
 
-.option:has(input:checked) .option-label {
+.option.selected .option-label {
   color: var(--selected-text);
 }
 
@@ -161,8 +162,9 @@ body {
   line-height: 1.4;
 }
 
-/* Keyboard-focus indicator (accessibility) */
-.option:has(input:focus-visible) {
+/* Keyboard-focus indicator (accessibility) – :focus-within is supported
+   from Chrome 60, avoiding the Chrome 105+ `:has()` requirement. */
+.option:focus-within {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }

@@ -107,6 +107,10 @@ describe('matchesLineBreakKey', () => {
     it('does NOT match Ctrl+Shift+Enter', () => {
       expect(matchesLineBreakKey(key({ ctrlKey: true, shiftKey: true }), 'Ctrl+Enter')).toBe(false);
     });
+
+    it('does NOT match Ctrl+⌘+Enter (both modifiers at once)', () => {
+      expect(matchesLineBreakKey(key({ ctrlKey: true, metaKey: true }), 'Ctrl+Enter')).toBe(false);
+    });
   });
 
   describe('Alt+Enter', () => {
@@ -154,6 +158,18 @@ describe('isGoogleChatInput', () => {
     const el = document.createElement('div');
     el.setAttribute('contenteditable', 'true');
     expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns true for contenteditable="" (empty string means editable)', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', '');
+    expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns false for contenteditable="false"', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'false');
+    expect(isGoogleChatInput(el)).toBe(false);
   });
 
   it('returns true for a contenteditable="plaintext-only" div', () => {
@@ -303,6 +319,12 @@ describe('onStorageChanged', () => {
   it('updates lineBreakKey when storage sync changes', () => {
     content.onStorageChanged({ lineBreakKey: { newValue: 'Ctrl+Enter' } }, 'sync');
     expect(content.getLineBreakKey()).toBe('Ctrl+Enter');
+  });
+
+  it('falls back to DEFAULT when newValue is undefined (key deleted)', () => {
+    content.setLineBreakKey('Shift+Enter');
+    content.onStorageChanged({ lineBreakKey: { newValue: undefined } }, 'sync');
+    expect(content.getLineBreakKey()).toBe(content.DEFAULT_LINE_BREAK_KEY);
   });
 
   it('ignores changes from non-sync storage areas', () => {
