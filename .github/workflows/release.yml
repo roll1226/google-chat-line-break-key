@@ -2,8 +2,16 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag name (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -31,9 +39,21 @@ jobs:
       - name: Generate icons
         run: npm run generate-icons
 
+      - name: Set release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+            echo "name=v${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create extension ZIP
         run: |
-          zip -r googo-chat-line-break-key-${{ github.ref_name }}.zip \
+          zip -r googo-chat-line-break-key-${{ steps.tag.outputs.name }}.zip \
             manifest.json \
             src/ \
             icons/
@@ -41,6 +61,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: googo-chat-line-break-key-${{ github.ref_name }}.zip
+          tag_name: ${{ steps.tag.outputs.name }}
+          files: googo-chat-line-break-key-${{ steps.tag.outputs.name }}.zip
           generate_release_notes: true
           fail_on_unmatched_files: true
