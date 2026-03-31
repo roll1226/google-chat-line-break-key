@@ -1,0 +1,361 @@
+'use strict';
+
+/**
+ * Unit tests for src/content.js
+ *
+ * The content script exports pure helper functions via CommonJS when running
+ * outside the browser (i.e. in Jest), which lets us test the logic directly
+ * without a real Chrome environment.
+ */
+
+// ── Chrome API mock ────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  global.chrome = {
+    storage: {
+      sync: {
+        get: jest.fn((_defaults, cb) => cb({ lineBreakKey: 'Enter' })),
+        set: jest.fn((_data, cb) => cb && cb()),
+      },
+      onChanged: {
+        addListener: jest.fn(),
+      },
+    },
+  };
+
+  // Reset the module so each test starts with a fresh lineBreakKey state.
+  jest.resetModules();
+});
+
+afterEach(() => {
+  delete global.chrome;
+  jest.restoreAllMocks();
+});
+
+// ── Helper to get a fresh module copy ─────────────────────────────────────
+
+function loadModule() {
+  return require('../src/content');
+}
+
+// ── matchesLineBreakKey ────────────────────────────────────────────────────
+
+describe('matchesLineBreakKey', () => {
+  let matchesLineBreakKey;
+
+  beforeEach(() => {
+    ({ matchesLineBreakKey } = loadModule());
+  });
+
+  /** Builds a minimal fake KeyboardEvent-like object */
+  function key(opts) {
+    return {
+      key: 'Enter',
+      shiftKey: false,
+      ctrlKey: false,
+      altKey: false,
+      metaKey: false,
+      ...opts,
+    };
+  }
+
+  describe('Enter', () => {
+    it('matches plain Enter', () => {
+      expect(matchesLineBreakKey(key({}), 'Enter')).toBe(true);
+    });
+
+    it('does NOT match Shift+Enter', () => {
+      expect(matchesLineBreakKey(key({ shiftKey: true }), 'Enter')).toBe(false);
+    });
+
+    it('does NOT match Ctrl+Enter', () => {
+      expect(matchesLineBreakKey(key({ ctrlKey: true }), 'Enter')).toBe(false);
+    });
+
+    it('does NOT match Alt+Enter', () => {
+      expect(matchesLineBreakKey(key({ altKey: true }), 'Enter')).toBe(false);
+    });
+  });
+
+  describe('Shift+Enter', () => {
+    it('matches Shift+Enter', () => {
+      expect(matchesLineBreakKey(key({ shiftKey: true }), 'Shift+Enter')).toBe(true);
+    });
+
+    it('does NOT match plain Enter', () => {
+      expect(matchesLineBreakKey(key({}), 'Shift+Enter')).toBe(false);
+    });
+
+    it('does NOT match Ctrl+Shift+Enter', () => {
+      expect(matchesLineBreakKey(key({ shiftKey: true, ctrlKey: true }), 'Shift+Enter')).toBe(false);
+    });
+  });
+
+  describe('Ctrl+Enter', () => {
+    it('matches Ctrl+Enter', () => {
+      expect(matchesLineBreakKey(key({ ctrlKey: true }), 'Ctrl+Enter')).toBe(true);
+    });
+
+    it('matches Meta+Enter on macOS (⌘ Command key)', () => {
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: { platform: 'macOS' },
+        writable: true,
+        configurable: true,
+      });
+      jest.resetModules();
+      ({ matchesLineBreakKey } = loadModule());
+      expect(matchesLineBreakKey(key({ metaKey: true }), 'Ctrl+Enter')).toBe(true);
+      delete navigator.userAgentData;
+    });
+
+    it('does NOT match Meta+Enter on Windows (Win/Super key ≠ Ctrl)', () => {
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: { platform: 'Windows' },
+        writable: true,
+        configurable: true,
+      });
+      jest.resetModules();
+      ({ matchesLineBreakKey } = loadModule());
+      expect(matchesLineBreakKey(key({ metaKey: true }), 'Ctrl+Enter')).toBe(false);
+      delete navigator.userAgentData;
+    });
+
+    it('does NOT match plain Enter', () => {
+      expect(matchesLineBreakKey(key({}), 'Ctrl+Enter')).toBe(false);
+    });
+
+    it('does NOT match Ctrl+Shift+Enter', () => {
+      expect(matchesLineBreakKey(key({ ctrlKey: true, shiftKey: true }), 'Ctrl+Enter')).toBe(false);
+    });
+
+    it('does NOT match Ctrl+⌘+Enter (both modifiers at once)', () => {
+      expect(matchesLineBreakKey(key({ ctrlKey: true, metaKey: true }), 'Ctrl+Enter')).toBe(false);
+    });
+  });
+
+  describe('Alt+Enter', () => {
+    it('matches Alt+Enter', () => {
+      expect(matchesLineBreakKey(key({ altKey: true }), 'Alt+Enter')).toBe(true);
+    });
+
+    it('does NOT match plain Enter', () => {
+      expect(matchesLineBreakKey(key({}), 'Alt+Enter')).toBe(false);
+    });
+
+    it('does NOT match Alt+Enter when Meta is also pressed (⌘+⌥+Enter on Mac)', () => {
+      expect(matchesLineBreakKey(key({ altKey: true, metaKey: true }), 'Alt+Enter')).toBe(false);
+    });
+  });
+
+  describe('non-Enter key', () => {
+    it('returns false when key is not Enter', () => {
+      expect(matchesLineBreakKey({ key: 'a', shiftKey: false, ctrlKey: false, altKey: false, metaKey: false }, 'Enter')).toBe(false);
+    });
+  });
+
+  describe('unknown key combo string', () => {
+    it('returns false for unrecognised combo', () => {
+      expect(matchesLineBreakKey({ key: 'Enter', shiftKey: false, ctrlKey: false, altKey: false, metaKey: false }, 'Win+Enter')).toBe(false);
+    });
+  });
+});
+
+// ── isGoogleChatInput ──────────────────────────────────────────────────────
+
+describe('isGoogleChatInput', () => {
+  let isGoogleChatInput;
+
+  beforeEach(() => {
+    ({ isGoogleChatInput } = loadModule());
+  });
+
+  it('returns true for a <textarea>', () => {
+    const el = document.createElement('textarea');
+    expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns true for a contenteditable div', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'true');
+    expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns true for contenteditable="" (empty string means editable)', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', '');
+    expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns false for contenteditable="false"', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'false');
+    expect(isGoogleChatInput(el)).toBe(false);
+  });
+
+  it('returns true for a contenteditable="plaintext-only" div', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'plaintext-only');
+    expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns true for role="textbox"', () => {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'textbox');
+    expect(isGoogleChatInput(el)).toBe(true);
+  });
+
+  it('returns false for a plain <div>', () => {
+    const el = document.createElement('div');
+    expect(isGoogleChatInput(el)).toBe(false);
+  });
+
+  it('returns false for a <button>', () => {
+    const el = document.createElement('button');
+    expect(isGoogleChatInput(el)).toBe(false);
+  });
+
+  it('returns false for null', () => {
+    expect(isGoogleChatInput(null)).toBe(false);
+  });
+
+  it('returns false for undefined', () => {
+    expect(isGoogleChatInput(undefined)).toBe(false);
+  });
+});
+
+// ── handleKeyDown ──────────────────────────────────────────────────────────
+
+describe('handleKeyDown', () => {
+  let content;
+
+  beforeEach(() => {
+    content = loadModule();
+    // Ensure execCommand is available in jsdom
+    document.execCommand = jest.fn(() => true);
+  });
+
+  function makeEvent(opts) {
+    return {
+      key: 'Enter',
+      keyCode: 13,
+      shiftKey: false,
+      ctrlKey: false,
+      altKey: false,
+      metaKey: false,
+      isComposing: false,
+      target: (() => {
+        const el = document.createElement('div');
+        el.setAttribute('contenteditable', 'true');
+        return el;
+      })(),
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+      ...opts,
+    };
+  }
+
+  it('calls preventDefault and stopPropagation when key matches', () => {
+    content.setLineBreakKey('Enter');
+    const event = makeEvent({});
+    content.handleKeyDown(event);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls execCommand to insert newline when key matches', () => {
+    content.setLineBreakKey('Enter');
+    const event = makeEvent({});
+    content.handleKeyDown(event);
+    expect(document.execCommand).toHaveBeenCalledWith('insertText', false, '\n');
+  });
+
+  it('does NOT intercept when the combo does not match', () => {
+    content.setLineBreakKey('Shift+Enter'); // configured to Shift+Enter
+    const event = makeEvent({ shiftKey: false }); // plain Enter pressed
+    content.handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('does NOT intercept during IME composition (isComposing = true)', () => {
+    content.setLineBreakKey('Enter');
+    const event = makeEvent({ isComposing: true });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('does NOT intercept when keyCode is 229 (legacy IME indicator)', () => {
+    content.setLineBreakKey('Enter');
+    const event = makeEvent({ keyCode: 229 });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('does NOT intercept non-Enter keys', () => {
+    content.setLineBreakKey('Enter');
+    const event = makeEvent({ key: 'a' });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('does NOT intercept events on non-input elements', () => {
+    content.setLineBreakKey('Enter');
+    const el = document.createElement('div'); // no contenteditable
+    const event = makeEvent({ target: el });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('intercepts Shift+Enter when configured as line break key', () => {
+    content.setLineBreakKey('Shift+Enter');
+    const event = makeEvent({ shiftKey: true });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('intercepts Ctrl+Enter when configured as line break key', () => {
+    content.setLineBreakKey('Ctrl+Enter');
+    const event = makeEvent({ ctrlKey: true });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('intercepts Alt+Enter when configured as line break key', () => {
+    content.setLineBreakKey('Alt+Enter');
+    const event = makeEvent({ altKey: true });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── onStorageChanged ───────────────────────────────────────────────────────
+
+describe('onStorageChanged', () => {
+  let content;
+
+  beforeEach(() => {
+    content = loadModule();
+  });
+
+  it('updates lineBreakKey when storage sync changes', () => {
+    content.onStorageChanged({ lineBreakKey: { newValue: 'Ctrl+Enter' } }, 'sync');
+    expect(content.getLineBreakKey()).toBe('Ctrl+Enter');
+  });
+
+  it('falls back to DEFAULT when newValue is undefined (key deleted)', () => {
+    content.setLineBreakKey('Shift+Enter');
+    content.onStorageChanged({ lineBreakKey: { newValue: undefined } }, 'sync');
+    expect(content.getLineBreakKey()).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('ignores changes from non-sync storage areas', () => {
+    content.setLineBreakKey('Enter');
+    content.onStorageChanged({ lineBreakKey: { newValue: 'Alt+Enter' } }, 'local');
+    expect(content.getLineBreakKey()).toBe('Enter');
+  });
+
+  it('ignores changes that do not affect lineBreakKey', () => {
+    content.setLineBreakKey('Enter');
+    content.onStorageChanged({ someOtherKey: { newValue: 'foo' } }, 'sync');
+    expect(content.getLineBreakKey()).toBe('Enter');
+  });
+});

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Google Chat Line Break Key</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <svg
+          class="header-icon"
+          viewBox="0 0 28 28"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <rect width="28" height="28" rx="6" fill="#1a73e8" />
+          <path
+            d="M7 9h14M7 14h10M7 19l4-2v2h3"
+            stroke="#fff"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div class="header-text">
+          <div class="title">改行キー設定</div>
+          <div class="subtitle">Google Chat Line Break Key</div>
+        </div>
+      </div>
+
+      <!-- Key selection -->
+      <div class="section-label">改行キーを選択</div>
+      <div class="options" role="radiogroup" aria-label="改行キーの選択">
+        <label class="option">
+          <input type="radio" name="lineBreakKey" value="Enter" />
+          <span class="option-label">Enter</span>
+          <span class="option-desc">Enterで改行（拡張機能デフォルト）</span>
+        </label>
+
+        <label class="option">
+          <input type="radio" name="lineBreakKey" value="Shift+Enter" />
+          <span class="option-label">Shift + Enter</span>
+          <span class="option-desc">Shift+Enterで改行（Google Chatデフォルト）</span>
+        </label>
+
+        <label class="option">
+          <input type="radio" name="lineBreakKey" value="Ctrl+Enter" />
+          <span class="option-label" id="ctrl-enter-label">Ctrl + Enter</span>
+          <span class="option-desc" id="ctrl-enter-desc">Ctrl+Enterで改行</span>
+        </label>
+
+        <label class="option">
+          <input type="radio" name="lineBreakKey" value="Alt+Enter" />
+          <span class="option-label" id="alt-enter-label">Alt + Enter</span>
+          <span class="option-desc" id="alt-enter-desc">Alt+Enterで改行</span>
+        </label>
+      </div>
+
+      <!-- Status feedback -->
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

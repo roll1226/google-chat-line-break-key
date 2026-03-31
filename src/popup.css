@@ -1,0 +1,184 @@
+/* =========================================================
+   Google Chat Line Break Key – Popup Styles
+   Supports light mode and dark mode via CSS custom properties.
+   ========================================================= */
+
+/* --- Design tokens (light mode defaults) --- */
+:root {
+  --bg:              #ffffff;
+  --surface:         #f8f9fa;
+  --text-primary:    #202124;
+  --text-secondary:  #5f6368;
+  --border:          #dadce0;
+  --hover-bg:        #f1f3f4;
+  --selected-bg:     #e8f0fe;
+  --selected-border: #1a73e8;
+  --selected-text:   #1a73e8;
+  --accent:          #1a73e8;
+  --status-ok:       #1e8e3e;
+  --radius:          8px;
+  --transition:      0.15s ease;
+}
+
+/* --- Dark mode overrides --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:              #202124;
+    --surface:         #2a2d31;
+    --text-primary:    #e8eaed;
+    --text-secondary:  #9aa0a6;
+    --border:          #3c4043;
+    --hover-bg:        #35373b;
+    --selected-bg:     #1a3a5c;
+    --selected-border: #8ab4f8;
+    --selected-text:   #8ab4f8;
+    --accent:          #8ab4f8;
+    --status-ok:       #81c995;
+  }
+}
+
+/* --- Reset --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Base --- */
+body {
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  min-width: 300px;
+  max-width: 340px;
+}
+
+/* --- Container --- */
+.container {
+  padding: 20px 16px 16px;
+}
+
+/* --- Header --- */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+/* --- Section label --- */
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+/* --- Option list --- */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+/* Each option is a <label> wrapping a hidden radio input */
+.option {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition), border-color var(--transition);
+  user-select: none;
+}
+
+.option:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Selected state – toggled via JS (.selected class) to avoid `:has()` which
+   requires Chrome 105+. */
+.option.selected {
+  background-color: var(--selected-bg);
+  border-color: var(--selected-border);
+}
+
+/* Hide the default radio button; the visual indicator is the card style */
+.option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.option-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.option.selected .option-label {
+  color: var(--selected-text);
+}
+
+.option-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Keyboard-focus indicator (accessibility) – :focus-within is supported
+   from Chrome 60, avoiding the Chrome 105+ `:has()` requirement. */
+.option:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* --- Status message --- */
+.status {
+  font-size: 12px;
+  color: var(--status-ok);
+  min-height: 18px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.status.show {
+  opacity: 1;
+}
