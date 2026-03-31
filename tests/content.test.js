@@ -96,8 +96,28 @@ describe('matchesLineBreakKey', () => {
       expect(matchesLineBreakKey(key({ ctrlKey: true }), 'Ctrl+Enter')).toBe(true);
     });
 
-    it('also matches Meta+Enter (Mac Command key)', () => {
+    it('matches Meta+Enter on macOS (⌘ Command key)', () => {
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: { platform: 'macOS' },
+        writable: true,
+        configurable: true,
+      });
+      jest.resetModules();
+      ({ matchesLineBreakKey } = loadModule());
       expect(matchesLineBreakKey(key({ metaKey: true }), 'Ctrl+Enter')).toBe(true);
+      delete navigator.userAgentData;
+    });
+
+    it('does NOT match Meta+Enter on Windows (Win/Super key ≠ Ctrl)', () => {
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: { platform: 'Windows' },
+        writable: true,
+        configurable: true,
+      });
+      jest.resetModules();
+      ({ matchesLineBreakKey } = loadModule());
+      expect(matchesLineBreakKey(key({ metaKey: true }), 'Ctrl+Enter')).toBe(false);
+      delete navigator.userAgentData;
     });
 
     it('does NOT match plain Enter', () => {

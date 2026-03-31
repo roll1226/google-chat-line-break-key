@@ -218,6 +218,21 @@ describe('showStatus', () => {
     expect(statusEl.classList.contains('show')).toBe(false);
   });
 
+  it('does not remove "show" early when called multiple times rapidly', () => {
+    const { showStatus } = require('../src/popup');
+
+    showStatus('1回目');
+    jest.advanceTimersByTime(1500); // first timer would fire at 2000, so still visible
+
+    showStatus('2回目'); // second call resets the timer
+    jest.advanceTimersByTime(1500); // only 1500 ms into the second 2000 ms window
+
+    const statusEl = document.getElementById('status');
+    // The hide timer from the first call must have been cancelled; status is still visible
+    expect(statusEl.classList.contains('show')).toBe(true);
+    expect(statusEl.textContent).toBe('2回目');
+  });
+
   it('does nothing when the status element is absent', () => {
     document.body.innerHTML = '<div></div>'; // no #status element
     const { showStatus } = require('../src/popup');

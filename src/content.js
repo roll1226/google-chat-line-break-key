@@ -8,14 +8,32 @@ const DEFAULT_LINE_BREAK_KEY = 'Enter';
 /** Currently configured line break key */
 let lineBreakKey = DEFAULT_LINE_BREAK_KEY;
 
+// --- Platform Detection ---
+
+/**
+ * Returns true when the content script is running on macOS.
+ *
+ * Uses navigator.userAgentData when available (Chrome 90+) and falls back to
+ * navigator.platform for older environments (e.g. jsdom in tests).
+ * @returns {boolean}
+ */
+function isMac() {
+  if (typeof navigator === 'undefined') return false;
+  if (navigator.userAgentData) {
+    return navigator.userAgentData.platform === 'macOS';
+  }
+  return /Mac|MacIntel|MacPPC|Mac68K/.test(navigator.platform || '');
+}
+
 // --- Pure Logic Functions ---
 
 /**
  * Checks whether a keyboard event matches the configured line break key combo.
  *
  * Cross-platform notes:
- *   - 'Ctrl+Enter'  accepts Ctrl (Windows/Linux) or ⌘ Command / Meta (Mac), but
- *                   not both at the same time (Ctrl+⌘+Enter is rejected).
+ *   - 'Ctrl+Enter'  accepts Ctrl on all platforms and additionally ⌘ Command
+ *                   (metaKey) on macOS only.  On Windows/Linux metaKey is the
+ *                   Windows/Super key and is intentionally not treated as Ctrl.
  *   - 'Alt+Enter'   accepts Alt (Windows/Linux) and ⌥ Option (Mac); both set
  *                   event.altKey = true in Chrome on all platforms.
  *   - Modifier combinations that include extra keys are intentionally rejected
@@ -33,14 +51,16 @@ function matchesLineBreakKey(event, key) {
       return !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
     case 'Shift+Enter':
       return event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-    case 'Ctrl+Enter':
-      // ctrlKey  → Ctrl on Windows / Linux
-      // metaKey  → ⌘ Command on Mac
-      // Require exactly one of the two; reject if both are held simultaneously.
-      return (event.ctrlKey || event.metaKey) &&
+    case 'Ctrl+Enter': {
+      // ctrlKey → Ctrl on all platforms.
+      // metaKey → ⌘ Command on Mac only; on Windows/Linux it is the Win/Super
+      //           key and should not be treated as Ctrl.
+      const metaAllowed = event.metaKey && isMac();
+      return (event.ctrlKey || metaAllowed) &&
         !(event.ctrlKey && event.metaKey) &&
         !event.shiftKey &&
         !event.altKey;
+    }
     case 'Alt+Enter':
       // altKey → Alt on Windows / Linux, ⌥ Option on Mac
       // Exclude metaKey so that ⌘+⌥+Enter does not accidentally match.
@@ -155,6 +175,7 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     DEFAULT_LINE_BREAK_KEY,
+    isMac,
     matchesLineBreakKey,
     isGoogleChatInput,
     insertNewline,

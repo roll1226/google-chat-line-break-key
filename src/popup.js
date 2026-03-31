@@ -8,9 +8,9 @@ const DEFAULT_LINE_BREAK_KEY = 'Enter';
 /**
  * Returns true when the extension is running on macOS.
  *
- * Uses the modern navigator.userAgentData API (available in Chrome 90+, which
- * is required by Manifest V3) and falls back to navigator.platform for older
- * environments such as jsdom used in tests.
+ * Uses the modern navigator.userAgentData API when available (supported in
+ * Chrome 90+ and other modern browsers) and falls back to navigator.platform
+ * for older environments such as jsdom used in tests.
  * @returns {boolean}
  */
 function isMac() {
@@ -105,6 +105,9 @@ function handleChange(event) {
   });
 }
 
+/** Tracks the current hide-timeout so rapid saves don't flicker the status. */
+let statusTimeoutId = null;
+
 /**
  * Briefly displays a status message at the bottom of the popup.
  * @param {string} message
@@ -116,7 +119,8 @@ function showStatus(message) {
   statusEl.textContent = message;
   statusEl.classList.add('show');
 
-  setTimeout(() => {
+  clearTimeout(statusTimeoutId);
+  statusTimeoutId = setTimeout(() => {
     statusEl.classList.remove('show');
   }, 2000);
 }
