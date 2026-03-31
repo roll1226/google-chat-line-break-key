@@ -98,6 +98,21 @@ function isGoogleChatInput(target) {
 }
 
 /**
+ * Checks whether a suggestion/autocomplete dropdown (e.g. a mention list) is
+ * currently active for the given element.
+ *
+ * Google Chat sets aria-expanded="true" on the textbox when the mention or
+ * slash-command autocomplete list is visible.  We use this as a signal to
+ * leave the Enter key alone so the user can select a suggestion normally.
+ * @param {EventTarget|null} target
+ * @returns {boolean}
+ */
+function isSuggestionDropdownOpen(target) {
+  if (!target || typeof target.getAttribute !== 'function') return false;
+  return target.getAttribute('aria-expanded') === 'true';
+}
+
+/**
  * Inserts a newline at the current cursor position.
  * Uses execCommand so that React-based editors (like Google Chat) receive the
  * corresponding 'input' event and update their internal state correctly.
@@ -125,6 +140,10 @@ function handleKeyDown(event) {
 
   // Only act inside a Google Chat editable area.
   if (!isGoogleChatInput(event.target)) return;
+
+  // When a mention / autocomplete dropdown is visible, let the browser handle
+  // Enter so the user can select the highlighted suggestion normally.
+  if (isSuggestionDropdownOpen(event.target)) return;
 
   // When the pressed combo is the configured line break key, insert a newline
   // and prevent Google Chat from treating it as a "send" action.
@@ -178,6 +197,7 @@ if (typeof module !== 'undefined' && module.exports) {
     isMac,
     matchesLineBreakKey,
     isGoogleChatInput,
+    isSuggestionDropdownOpen,
     insertNewline,
     handleKeyDown,
     onStorageChanged,
