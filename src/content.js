@@ -101,15 +101,22 @@ function isGoogleChatInput(target) {
  * Checks whether a suggestion/autocomplete dropdown (e.g. a mention list) is
  * currently active for the given element.
  *
- * Google Chat sets aria-expanded="true" on the textbox when the mention or
- * slash-command autocomplete list is visible.  We use this as a signal to
- * leave the Enter key alone so the user can select a suggestion normally.
+ * Google Chat sets aria-expanded="true" on the textbox or on a parent wrapper
+ * element when the mention or slash-command autocomplete list is visible.
+ * We traverse up the DOM tree so the check is reliable regardless of which
+ * ancestor carries the attribute.  We use this as a signal to leave the Enter
+ * key alone so the user can select a suggestion normally.
  * @param {EventTarget|null} target
  * @returns {boolean}
  */
 function isSuggestionDropdownOpen(target) {
   if (!target || typeof target.getAttribute !== 'function') return false;
-  return target.getAttribute('aria-expanded') === 'true';
+  let el = target;
+  while (el && typeof el.getAttribute === 'function') {
+    if (el.getAttribute('aria-expanded') === 'true') return true;
+    el = el.parentElement || null;
+  }
+  return false;
 }
 
 /**

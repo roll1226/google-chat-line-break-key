@@ -249,6 +249,23 @@ describe('isSuggestionDropdownOpen', () => {
     expect(isSuggestionDropdownOpen(el)).toBe(false);
   });
 
+  it('returns true when aria-expanded="true" is on a parent element', () => {
+    const parent = document.createElement('div');
+    parent.setAttribute('aria-expanded', 'true');
+    const child = document.createElement('div');
+    child.setAttribute('contenteditable', 'true');
+    parent.appendChild(child);
+    expect(isSuggestionDropdownOpen(child)).toBe(true);
+  });
+
+  it('returns false when aria-expanded="true" is NOT in any ancestor', () => {
+    const parent = document.createElement('div');
+    const child = document.createElement('div');
+    child.setAttribute('contenteditable', 'true');
+    parent.appendChild(child);
+    expect(isSuggestionDropdownOpen(child)).toBe(false);
+  });
+
   it('returns false for null', () => {
     expect(isSuggestionDropdownOpen(null)).toBe(false);
   });
@@ -366,6 +383,20 @@ describe('handleKeyDown', () => {
     const el = document.createElement('div');
     el.setAttribute('contenteditable', 'true');
     el.setAttribute('aria-expanded', 'true');
+    const event = makeEvent({ target: el });
+    content.handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(event.stopPropagation).not.toHaveBeenCalled();
+    expect(document.execCommand).not.toHaveBeenCalled();
+  });
+
+  it('does NOT intercept Enter when aria-expanded="true" is on a parent wrapper (Google Chat pattern)', () => {
+    content.setLineBreakKey('Enter');
+    const wrapper = document.createElement('div');
+    wrapper.setAttribute('aria-expanded', 'true');
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'true');
+    wrapper.appendChild(el);
     const event = makeEvent({ target: el });
     content.handleKeyDown(event);
     expect(event.preventDefault).not.toHaveBeenCalled();
