@@ -5,8 +5,22 @@
 /** Default line break key setting */
 const DEFAULT_LINE_BREAK_KEY = 'Enter';
 
+/** Allowed values for the line break key setting */
+const VALID_LINE_BREAK_KEYS = ['Enter', 'Shift+Enter', 'Ctrl+Enter', 'Alt+Enter'];
+
 /** Currently configured line break key */
 let lineBreakKey = DEFAULT_LINE_BREAK_KEY;
+
+/**
+ * Returns the value if it is a recognised line break key, otherwise returns
+ * the default.  Prevents unexpected values from chrome.storage reaching the
+ * rest of the logic.
+ * @param {*} value
+ * @returns {string}
+ */
+function sanitizeLineBreakKey(value) {
+  return VALID_LINE_BREAK_KEYS.includes(value) ? value : DEFAULT_LINE_BREAK_KEY;
+}
 
 // --- Platform Detection ---
 
@@ -171,10 +185,11 @@ function handleKeyDown(event) {
  */
 function onStorageChanged(changes, area) {
   if (area === 'sync' && changes.lineBreakKey) {
-    lineBreakKey =
+    lineBreakKey = sanitizeLineBreakKey(
       changes.lineBreakKey.newValue !== undefined
         ? changes.lineBreakKey.newValue
-        : DEFAULT_LINE_BREAK_KEY;
+        : DEFAULT_LINE_BREAK_KEY
+    );
   }
 }
 
@@ -184,7 +199,7 @@ function onStorageChanged(changes, area) {
  */
 function init() {
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
-    lineBreakKey = data.lineBreakKey;
+    lineBreakKey = sanitizeLineBreakKey(data.lineBreakKey);
     document.addEventListener('keydown', handleKeyDown, true);
   });
   chrome.storage.onChanged.addListener(onStorageChanged);
@@ -201,7 +216,9 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     DEFAULT_LINE_BREAK_KEY,
+    VALID_LINE_BREAK_KEYS,
     isMac,
+    sanitizeLineBreakKey,
     matchesLineBreakKey,
     isGoogleChatInput,
     isSuggestionDropdownOpen,

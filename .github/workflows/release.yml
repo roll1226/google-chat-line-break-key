@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: '20'
           cache: 'npm'
@@ -41,14 +41,27 @@ jobs:
 
       - name: Set release tag
         id: tag
+        env:
+          TAG_INPUT: ${{ github.event.inputs.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "name=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+            # Strip carriage returns, newlines, and any characters not valid in a
+            # tag name, then enforce the expected vX.Y.Z format.
+            SANITIZED=$(printf '%s' "${TAG_INPUT}" | tr -d '\r\n' | tr -cd '[:alnum:]._+-')
+            if ! printf '%s' "${SANITIZED}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Invalid tag format: '${SANITIZED}'. Expected vX.Y.Z" >&2
+              exit 1
+            fi
+            printf 'name=%s\n' "${SANITIZED}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
             VERSION=$(node -p "require('./package.json').version")
-            echo "name=v${VERSION}" >> $GITHUB_OUTPUT
+            printf 'name=v%s\n' "${VERSION}" >> "$GITHUB_OUTPUT"
           else
-            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            # REF_NAME comes from a trusted git ref (push/tag event); still strip
+            # control characters as a defence-in-depth measure.
+            SAFE_REF=$(printf '%s' "${REF_NAME}" | tr -d '\r\n')
+            printf 'name=%s\n' "${SAFE_REF}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create extension ZIP
@@ -59,7 +72,7 @@ jobs:
             icons/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c062e08bd532815e2082a7e09ce9571a6d1144cd # v2.2.1
         with:
           tag_name: ${{ steps.tag.outputs.name }}
           files: googo-chat-line-break-key-${{ steps.tag.outputs.name }}.zip

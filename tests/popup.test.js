@@ -83,6 +83,16 @@ describe('loadSetting', () => {
     expect(checked).toHaveLength(1);
     expect(checked[0].value).toBe('Ctrl+Enter');
   });
+
+  it('falls back to "Enter" radio when storage contains an invalid value', () => {
+    global.chrome = makeChromeStorage('INVALID_KEY');
+    const { loadSetting } = require('../src/popup');
+
+    loadSetting();
+
+    const enterRadio = document.querySelector('input[value="Enter"]');
+    expect(enterRadio.checked).toBe(true);
+  });
 });
 
 // ── syncSelectedClass ─────────────────────────────────────────────────────
@@ -461,5 +471,37 @@ describe('init', () => {
       { lineBreakKey: 'Shift+Enter' },
       expect.any(Function)
     );
+  });
+});
+
+// ── sanitizeLineBreakKey (popup) ──────────────────────────────────────────
+
+describe('sanitizeLineBreakKey', () => {
+  beforeEach(() => {
+    global.chrome = makeChromeStorage('Enter');
+  });
+
+  it('returns the value unchanged for each valid key', () => {
+    const { sanitizeLineBreakKey, VALID_LINE_BREAK_KEYS, DEFAULT_LINE_BREAK_KEY } =
+      require('../src/popup');
+    VALID_LINE_BREAK_KEYS.forEach((key) => {
+      expect(sanitizeLineBreakKey(key)).toBe(key);
+    });
+    void DEFAULT_LINE_BREAK_KEY; // referenced to ensure export is present
+  });
+
+  it('returns the default for an unrecognised string', () => {
+    const { sanitizeLineBreakKey, DEFAULT_LINE_BREAK_KEY } = require('../src/popup');
+    expect(sanitizeLineBreakKey('Win+Enter')).toBe(DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('returns the default for null', () => {
+    const { sanitizeLineBreakKey, DEFAULT_LINE_BREAK_KEY } = require('../src/popup');
+    expect(sanitizeLineBreakKey(null)).toBe(DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('returns the default for undefined', () => {
+    const { sanitizeLineBreakKey, DEFAULT_LINE_BREAK_KEY } = require('../src/popup');
+    expect(sanitizeLineBreakKey(undefined)).toBe(DEFAULT_LINE_BREAK_KEY);
   });
 });

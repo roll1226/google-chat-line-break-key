@@ -445,4 +445,46 @@ describe('onStorageChanged', () => {
     content.onStorageChanged({ someOtherKey: { newValue: 'foo' } }, 'sync');
     expect(content.getLineBreakKey()).toBe('Enter');
   });
+
+  it('falls back to DEFAULT when newValue is an invalid string', () => {
+    content.setLineBreakKey('Enter');
+    content.onStorageChanged({ lineBreakKey: { newValue: 'INVALID_KEY' } }, 'sync');
+    expect(content.getLineBreakKey()).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
+});
+
+// ── sanitizeLineBreakKey ───────────────────────────────────────────────────
+
+describe('sanitizeLineBreakKey', () => {
+  let content;
+
+  beforeEach(() => {
+    content = loadModule();
+  });
+
+  it('returns the value unchanged for each valid key', () => {
+    content.VALID_LINE_BREAK_KEYS.forEach((key) => {
+      expect(content.sanitizeLineBreakKey(key)).toBe(key);
+    });
+  });
+
+  it('returns the default for an unrecognised string', () => {
+    expect(content.sanitizeLineBreakKey('Win+Enter')).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('returns the default for an empty string', () => {
+    expect(content.sanitizeLineBreakKey('')).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('returns the default for null', () => {
+    expect(content.sanitizeLineBreakKey(null)).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('returns the default for undefined', () => {
+    expect(content.sanitizeLineBreakKey(undefined)).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
+
+  it('returns the default for a number', () => {
+    expect(content.sanitizeLineBreakKey(42)).toBe(content.DEFAULT_LINE_BREAK_KEY);
+  });
 });

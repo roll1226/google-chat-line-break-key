@@ -3,6 +3,19 @@
 /** Default line break key */
 const DEFAULT_LINE_BREAK_KEY = 'Enter';
 
+/** Allowed values for the line break key setting */
+const VALID_LINE_BREAK_KEYS = ['Enter', 'Shift+Enter', 'Ctrl+Enter', 'Alt+Enter'];
+
+/**
+ * Returns the value if it is a recognised line break key, otherwise returns
+ * the default.  Guards the popup UI against unexpected values in storage.
+ * @param {*} value
+ * @returns {string}
+ */
+function sanitizeLineBreakKey(value) {
+  return VALID_LINE_BREAK_KEYS.includes(value) ? value : DEFAULT_LINE_BREAK_KEY;
+}
+
 // --- Platform Detection ---
 
 /**
@@ -85,9 +98,10 @@ function syncSelectedClass() {
  */
 function loadSetting() {
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
+    const savedKey = sanitizeLineBreakKey(data.lineBreakKey);
     const radios = document.querySelectorAll('input[name="lineBreakKey"]');
     radios.forEach((radio) => {
-      radio.checked = radio.value === data.lineBreakKey;
+      radio.checked = radio.value === savedKey;
     });
     syncSelectedClass();
   });
@@ -154,7 +168,9 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     DEFAULT_LINE_BREAK_KEY,
+    VALID_LINE_BREAK_KEYS,
     isMac,
+    sanitizeLineBreakKey,
     getPlatformKeyLabels,
     updatePlatformLabels,
     syncSelectedClass,
