@@ -4,14 +4,7 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
   workflow_dispatch:
-    inputs:
-      tag_name:
-        description: 'Release tag name (e.g. v1.0.0)'
-        required: true
-        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -41,28 +34,13 @@ jobs:
 
       - name: Set release tag
         id: tag
-        env:
-          TAG_INPUT: ${{ github.event.inputs.tag_name }}
-          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Strip carriage returns, newlines, and any characters not valid in a
-            # tag name, then enforce the expected vX.Y.Z format.
-            SANITIZED=$(printf '%s' "${TAG_INPUT}" | tr -d '\r\n' | tr -cd '[:alnum:]._+-')
-            if ! printf '%s' "${SANITIZED}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-              echo "::error::Invalid tag format: '${SANITIZED}'. Expected vX.Y.Z" >&2
-              exit 1
-            fi
-            printf 'name=%s\n' "${SANITIZED}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            VERSION=$(node -p "require('./package.json').version")
-            printf 'name=v%s\n' "${VERSION}" >> "$GITHUB_OUTPUT"
-          else
-            # REF_NAME comes from a trusted git ref (push/tag event); still strip
-            # control characters as a defence-in-depth measure.
-            SAFE_REF=$(printf '%s' "${REF_NAME}" | tr -d '\r\n')
-            printf 'name=%s\n' "${SAFE_REF}" >> "$GITHUB_OUTPUT"
+          VERSION=$(node -p "require('./manifest.json').version")
+          if ! printf '%s' "${VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Invalid version in manifest.json: '${VERSION}'. Expected X.Y.Z" >&2
+            exit 1
           fi
+          printf 'name=v%s\n' "${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create extension ZIP
         run: |
