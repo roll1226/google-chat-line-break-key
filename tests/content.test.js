@@ -249,6 +249,37 @@ describe('isSuggestionDropdownOpen', () => {
     expect(isSuggestionDropdownOpen(el)).toBe(false);
   });
 
+  it('returns true when aria-activedescendant is set (dropdown option is highlighted)', () => {
+    const el = document.createElement('div');
+    el.setAttribute('aria-activedescendant', 'option-1');
+    expect(isSuggestionDropdownOpen(el)).toBe(true);
+  });
+
+  it('returns false when aria-activedescendant is empty string', () => {
+    const el = document.createElement('div');
+    el.setAttribute('aria-activedescendant', '');
+    expect(isSuggestionDropdownOpen(el)).toBe(false);
+  });
+
+  it('returns true when a [role="listbox"] exists in the document (portal-rendered dropdown)', () => {
+    const listbox = document.createElement('ul');
+    listbox.setAttribute('role', 'listbox');
+    document.body.appendChild(listbox);
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'true');
+    try {
+      expect(isSuggestionDropdownOpen(el)).toBe(true);
+    } finally {
+      document.body.removeChild(listbox);
+    }
+  });
+
+  it('returns false when no [role="listbox"] exists in the document', () => {
+    const el = document.createElement('div');
+    el.setAttribute('contenteditable', 'true');
+    expect(isSuggestionDropdownOpen(el)).toBe(false);
+  });
+
   it('returns true when aria-expanded="true" is on a parent element', () => {
     const parent = document.createElement('div');
     parent.setAttribute('aria-expanded', 'true');

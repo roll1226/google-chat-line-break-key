@@ -115,21 +115,39 @@ function isGoogleChatInput(target) {
  * Checks whether a suggestion/autocomplete dropdown (e.g. a mention list) is
  * currently active for the given element.
  *
- * Google Chat sets aria-expanded="true" on the textbox or on a parent wrapper
- * element when the mention or slash-command autocomplete list is visible.
- * We traverse up the DOM tree so the check is reliable regardless of which
- * ancestor carries the attribute.  We use this as a signal to leave the Enter
- * key alone so the user can select a suggestion normally.
+ * Three detection strategies are used in order:
+ *
+ * 1. aria-activedescendant on the target — set by the browser/framework when a
+ *    dropdown option is actively highlighted, regardless of DOM layout.
+ * 2. aria-expanded="true" traversal — Google Chat sometimes sets this on the
+ *    textbox itself or on a parent wrapper element.
+ * 3. Document-level [role="listbox"] lookup — Google Chat renders the mention
+ *    autocomplete as a floating overlay (portal) that is NOT an ancestor of the
+ *    input, so strategies 1 and 2 can miss it.  Checking the whole document
+ *    handles that case.
+ *
  * @param {EventTarget|null} target
  * @returns {boolean}
  */
 function isSuggestionDropdownOpen(target) {
   if (!target || typeof target.getAttribute !== 'function') return false;
+
+  // 1. aria-activedescendant being set means a dropdown option is highlighted.
+  if (target.getAttribute('aria-activedescendant')) return true;
+
+  // 2. Traverse ancestors for aria-expanded="true".
   let el = target;
   while (el && typeof el.getAttribute === 'function') {
     if (el.getAttribute('aria-expanded') === 'true') return true;
     el = el.parentElement || null;
   }
+
+  // 3. Check for a listbox anywhere in the document (covers portal-rendered
+  //    mention/autocomplete dropdowns that are not in the input's ancestor chain).
+  if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
+    if (document.querySelector('[role="listbox"]')) return true;
+  }
+
   return false;
 }
 
