@@ -188,7 +188,7 @@ function handleKeyDown(event) {
   // and prevent Google Chat from treating it as a "send" action.
   if (matchesLineBreakKey(event, lineBreakKey)) {
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
     insertNewline();
   }
 }
@@ -216,9 +216,13 @@ function onStorageChanged(changes, area) {
  * Called once when the content script is injected into the page.
  */
 function init() {
+  // Register synchronously so this listener is added before Google Chat's own
+  // handlers. lineBreakKey defaults to DEFAULT_LINE_BREAK_KEY until storage
+  // resolves asynchronously below.
+  document.addEventListener('keydown', handleKeyDown, true);
+
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
     lineBreakKey = sanitizeLineBreakKey(data.lineBreakKey);
-    document.addEventListener('keydown', handleKeyDown, true);
   });
   chrome.storage.onChanged.addListener(onStorageChanged);
 }

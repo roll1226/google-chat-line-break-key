@@ -332,17 +332,17 @@ describe('handleKeyDown', () => {
         return el;
       })(),
       preventDefault: jest.fn(),
-      stopPropagation: jest.fn(),
+      stopImmediatePropagation: jest.fn(),
       ...opts,
     };
   }
 
-  it('calls preventDefault and stopPropagation when key matches', () => {
+  it('calls preventDefault and stopImmediatePropagation when key matches', () => {
     content.setLineBreakKey('Enter');
     const event = makeEvent({});
     content.handleKeyDown(event);
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+    expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
   });
 
   it('calls execCommand to insert newline when key matches', () => {
@@ -417,7 +417,7 @@ describe('handleKeyDown', () => {
     const event = makeEvent({ target: el });
     content.handleKeyDown(event);
     expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(event.stopPropagation).not.toHaveBeenCalled();
+    expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
     expect(document.execCommand).not.toHaveBeenCalled();
   });
 
@@ -431,7 +431,7 @@ describe('handleKeyDown', () => {
     const event = makeEvent({ target: el });
     content.handleKeyDown(event);
     expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(event.stopPropagation).not.toHaveBeenCalled();
+    expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
     expect(document.execCommand).not.toHaveBeenCalled();
   });
 
