@@ -216,10 +216,11 @@ function onStorageChanged(changes, area) {
  * Called once when the content script is injected into the page.
  */
 function init() {
-  // Register synchronously so this listener is added before Google Chat's own
-  // handlers. lineBreakKey defaults to DEFAULT_LINE_BREAK_KEY until storage
-  // resolves asynchronously below.
-  document.addEventListener('keydown', handleKeyDown, true);
+  // Register on window (outermost target in capture chain) synchronously so
+  // this listener fires before any document- or element-level handlers that
+  // Google Chat may register. lineBreakKey defaults to DEFAULT_LINE_BREAK_KEY
+  // until storage resolves asynchronously below.
+  window.addEventListener('keydown', handleKeyDown, true);
 
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
     lineBreakKey = sanitizeLineBreakKey(data.lineBreakKey);
