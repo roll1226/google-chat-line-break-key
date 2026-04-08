@@ -332,17 +332,17 @@ describe('handleKeyDown', () => {
         return el;
       })(),
       preventDefault: jest.fn(),
-      stopImmediatePropagation: jest.fn(),
+      stopPropagation: jest.fn(),
       ...opts,
     };
   }
 
-  it('calls preventDefault and stopImmediatePropagation when key matches', () => {
+  it('calls preventDefault and stopPropagation when key matches', () => {
     content.setLineBreakKey('Enter');
     const event = makeEvent({});
     content.handleKeyDown(event);
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
   });
 
   it('calls execCommand to insert newline when key matches', () => {
@@ -409,40 +409,6 @@ describe('handleKeyDown', () => {
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT intercept Enter when a suggestion dropdown is open (aria-expanded="true")', () => {
-    content.setLineBreakKey('Enter');
-    const el = document.createElement('div');
-    el.setAttribute('contenteditable', 'true');
-    el.setAttribute('aria-expanded', 'true');
-    const event = makeEvent({ target: el });
-    content.handleKeyDown(event);
-    expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
-    expect(document.execCommand).not.toHaveBeenCalled();
-  });
-
-  it('does NOT intercept Enter when aria-expanded="true" is on a parent wrapper (Google Chat pattern)', () => {
-    content.setLineBreakKey('Enter');
-    const wrapper = document.createElement('div');
-    wrapper.setAttribute('aria-expanded', 'true');
-    const el = document.createElement('div');
-    el.setAttribute('contenteditable', 'true');
-    wrapper.appendChild(el);
-    const event = makeEvent({ target: el });
-    content.handleKeyDown(event);
-    expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
-    expect(document.execCommand).not.toHaveBeenCalled();
-  });
-
-  it('DOES intercept Enter when aria-expanded is absent (no dropdown)', () => {
-    content.setLineBreakKey('Enter');
-    const el = document.createElement('div');
-    el.setAttribute('contenteditable', 'true');
-    const event = makeEvent({ target: el });
-    content.handleKeyDown(event);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-  });
 });
 
 // ── onStorageChanged ───────────────────────────────────────────────────────

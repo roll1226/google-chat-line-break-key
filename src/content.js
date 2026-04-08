@@ -180,15 +180,11 @@ function handleKeyDown(event) {
   // Only act inside a Google Chat editable area.
   if (!isGoogleChatInput(event.target)) return;
 
-  // When a mention / autocomplete dropdown is visible, let the browser handle
-  // Enter so the user can select the highlighted suggestion normally.
-  if (isSuggestionDropdownOpen(event.target)) return;
-
   // When the pressed combo is the configured line break key, insert a newline
   // and prevent Google Chat from treating it as a "send" action.
   if (matchesLineBreakKey(event, lineBreakKey)) {
     event.preventDefault();
-    event.stopImmediatePropagation();
+    event.stopPropagation();
     insertNewline();
   }
 }
@@ -216,14 +212,9 @@ function onStorageChanged(changes, area) {
  * Called once when the content script is injected into the page.
  */
 function init() {
-  // Register on window (outermost target in capture chain) synchronously so
-  // this listener fires before any document- or element-level handlers that
-  // Google Chat may register. lineBreakKey defaults to DEFAULT_LINE_BREAK_KEY
-  // until storage resolves asynchronously below.
-  window.addEventListener('keydown', handleKeyDown, true);
-
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
     lineBreakKey = sanitizeLineBreakKey(data.lineBreakKey);
+    window.addEventListener('keydown', handleKeyDown, true);
   });
   chrome.storage.onChanged.addListener(onStorageChanged);
 }
