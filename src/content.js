@@ -1,12 +1,17 @@
-'use strict';
+"use strict";
 
 // --- Constants ---
 
 /** Default line break key setting */
-const DEFAULT_LINE_BREAK_KEY = 'Enter';
+const DEFAULT_LINE_BREAK_KEY = "Enter";
 
 /** Allowed values for the line break key setting */
-const VALID_LINE_BREAK_KEYS = ['Enter', 'Shift+Enter', 'Ctrl+Enter', 'Alt+Enter'];
+const VALID_LINE_BREAK_KEYS = [
+  "Enter",
+  "Shift+Enter",
+  "Ctrl+Enter",
+  "Alt+Enter",
+];
 
 /** Currently configured line break key */
 let lineBreakKey = DEFAULT_LINE_BREAK_KEY;
@@ -32,11 +37,11 @@ function sanitizeLineBreakKey(value) {
  * @returns {boolean}
  */
 function isMac() {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator === "undefined") return false;
   if (navigator.userAgentData) {
-    return navigator.userAgentData.platform === 'macOS';
+    return navigator.userAgentData.platform === "macOS";
   }
-  return /Mac|MacIntel|MacPPC|Mac68K/.test(navigator.platform || '');
+  return /Mac|MacIntel|MacPPC|Mac68K/.test(navigator.platform || "");
 }
 
 // --- Pure Logic Functions ---
@@ -58,27 +63,35 @@ function isMac() {
  * @returns {boolean}
  */
 function matchesLineBreakKey(event, key) {
-  if (event.key !== 'Enter') return false;
+  if (event.key !== "Enter") return false;
 
   switch (key) {
-    case 'Enter':
-      return !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-    case 'Shift+Enter':
-      return event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-    case 'Ctrl+Enter': {
+    case "Enter":
+      return (
+        !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey
+      );
+    case "Shift+Enter":
+      return (
+        event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey
+      );
+    case "Ctrl+Enter": {
       // ctrlKey → Ctrl on all platforms.
       // metaKey → ⌘ Command on Mac only; on Windows/Linux it is the Win/Super
       //           key and should not be treated as Ctrl.
       const metaAllowed = event.metaKey && isMac();
-      return (event.ctrlKey || metaAllowed) &&
+      return (
+        (event.ctrlKey || metaAllowed) &&
         !(event.ctrlKey && event.metaKey) &&
         !event.shiftKey &&
-        !event.altKey;
+        !event.altKey
+      );
     }
-    case 'Alt+Enter':
+    case "Alt+Enter":
       // altKey → Alt on Windows / Linux, ⌥ Option on Mac
       // Exclude metaKey so that ⌘+⌥+Enter does not accidentally match.
-      return event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey;
+      return (
+        event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey
+      );
     default:
       return false;
   }
@@ -86,29 +99,92 @@ function matchesLineBreakKey(event, key) {
 
 /**
  * Checks whether the target element is an editable input area (textarea or
- * contenteditable element) that is part of the Google Chat message composer.
+ * contenteditable element).
+ * @param {EventTarget|null} target
+ * @returns {boolean}
+ */
+function isEditableElement(target) {
+  if (!target || typeof target.tagName === "undefined") return false;
+
+  const tagName = target.tagName.toLowerCase();
+  if (tagName === "textarea") return true;
+
+  if (typeof target.getAttribute === "function") {
+    const contentEditable = target.getAttribute("contenteditable");
+    if (
+      contentEditable === "" ||
+      contentEditable === "true" ||
+      contentEditable === "plaintext-only"
+    ) {
+      return true;
+    }
+    if (target.getAttribute("role") === "textbox") return true;
+  }
+
+  // Fallback: the target may be a child node inside a contenteditable element
+  // (e.g. an inner <div> that inherits editability).  Walk up the ancestors to
+  // check for an explicit contenteditable attribute.
+  let ancestor = target.parentElement;
+  while (ancestor && typeof ancestor.getAttribute === "function") {
+    const ce = ancestor.getAttribute("contenteditable");
+    if (ce === "" || ce === "true" || ce === "plaintext-only") return true;
+    ancestor = ancestor.parentElement || null;
+  }
+
+  return false;
+}
+
+/**
+ * Checks whether the target element is inside a Google Chat panel by looking
+ * for an ancestor with a `data-group-id` attribute starting with "space/".
+ *
+ * This is used on mail.google.com to distinguish Chat inputs from Gmail's own
+ * compose editor (both use contenteditable).
+ * @param {EventTarget|null} target
+ * @returns {boolean}
+ */
+function isInsideChatPanel(target) {
+  if (!target || typeof target.getAttribute !== "function") return false;
+  let el = target;
+  while (el && typeof el.getAttribute === "function") {
+    const groupId = el.getAttribute("data-group-id");
+    if (groupId && groupId.startsWith("space/")) return true;
+    el = el.parentElement || null;
+  }
+  return false;
+}
+
+/**
+ * Returns the hostname of the current page.
+ * Extracted for testability.
+ * @returns {string}
+ */
+function getHostname() {
+  return typeof window !== "undefined" && window.location
+    ? window.location.hostname
+    : "";
+}
+
+/**
+ * Checks whether the target element is a Google Chat message input.
+ *
+ * On chat.google.com every editable element is part of Chat, so a simple
+ * check suffices.  On mail.google.com the page also contains Gmail's own
+ * compose editor, so we additionally verify that the element sits inside a
+ * Chat panel (identified by a `data-group-id="space/…"` ancestor).
+ *
  * @param {EventTarget|null} target
  * @returns {boolean}
  */
 function isGoogleChatInput(target) {
-  if (!target || typeof target.tagName === 'undefined') return false;
+  if (!isEditableElement(target)) return false;
 
-  const tagName = target.tagName.toLowerCase();
-  if (tagName === 'textarea') return true;
-
-  if (typeof target.getAttribute === 'function') {
-    const contentEditable = target.getAttribute('contenteditable');
-    if (
-      contentEditable === '' ||
-      contentEditable === 'true' ||
-      contentEditable === 'plaintext-only'
-    ) {
-      return true;
-    }
-    if (target.getAttribute('role') === 'textbox') return true;
+  const hostname = getHostname();
+  if (hostname === "mail.google.com") {
+    return isInsideChatPanel(target);
   }
 
-  return false;
+  return true;
 }
 
 /**
@@ -130,21 +206,24 @@ function isGoogleChatInput(target) {
  * @returns {boolean}
  */
 function isSuggestionDropdownOpen(target) {
-  if (!target || typeof target.getAttribute !== 'function') return false;
+  if (!target || typeof target.getAttribute !== "function") return false;
 
   // 1. aria-activedescendant being set means a dropdown option is highlighted.
-  if (target.getAttribute('aria-activedescendant')) return true;
+  if (target.getAttribute("aria-activedescendant")) return true;
 
   // 2. Traverse ancestors for aria-expanded="true".
   let el = target;
-  while (el && typeof el.getAttribute === 'function') {
-    if (el.getAttribute('aria-expanded') === 'true') return true;
+  while (el && typeof el.getAttribute === "function") {
+    if (el.getAttribute("aria-expanded") === "true") return true;
     el = el.parentElement || null;
   }
 
   // 3. Check for a listbox anywhere in the document (covers portal-rendered
   //    mention/autocomplete dropdowns that are not in the input's ancestor chain).
-  if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
+  if (
+    typeof document !== "undefined" &&
+    typeof document.querySelector === "function"
+  ) {
     if (document.querySelector('[role="listbox"]')) return true;
   }
 
@@ -159,7 +238,7 @@ function isSuggestionDropdownOpen(target) {
 function insertNewline() {
   // execCommand is deprecated but still the most reliable way to trigger
   // the browser's native input path for contenteditable elements.
-  document.execCommand('insertText', false, '\n');
+  document.execCommand("insertText", false, "\n");
 }
 
 // --- Event Handler ---
@@ -175,7 +254,7 @@ function handleKeyDown(event) {
   if (event.isComposing || event.keyCode === 229) return;
 
   // Only care about the Enter key.
-  if (event.key !== 'Enter') return;
+  if (event.key !== "Enter") return;
 
   // Only act inside a Google Chat editable area.
   if (!isGoogleChatInput(event.target)) return;
@@ -184,7 +263,7 @@ function handleKeyDown(event) {
   // and prevent Google Chat from treating it as a "send" action.
   if (matchesLineBreakKey(event, lineBreakKey)) {
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
     insertNewline();
   }
 }
@@ -198,11 +277,11 @@ function handleKeyDown(event) {
  * @param {string} area
  */
 function onStorageChanged(changes, area) {
-  if (area === 'sync' && changes.lineBreakKey) {
+  if (area === "sync" && changes.lineBreakKey) {
     lineBreakKey = sanitizeLineBreakKey(
       changes.lineBreakKey.newValue !== undefined
         ? changes.lineBreakKey.newValue
-        : DEFAULT_LINE_BREAK_KEY
+        : DEFAULT_LINE_BREAK_KEY,
     );
   }
 }
@@ -212,9 +291,13 @@ function onStorageChanged(changes, area) {
  * Called once when the content script is injected into the page.
  */
 function init() {
+  // Register the keydown listener synchronously so it is installed before
+  // any page scripts (Gmail, Google Chat) that might also listen in the
+  // capture phase.  The lineBreakKey variable starts at its default value
+  // and is updated asynchronously once chrome.storage responds.
+  window.addEventListener("keydown", handleKeyDown, true);
   chrome.storage.sync.get({ lineBreakKey: DEFAULT_LINE_BREAK_KEY }, (data) => {
     lineBreakKey = sanitizeLineBreakKey(data.lineBreakKey);
-    window.addEventListener('keydown', handleKeyDown, true);
   });
   chrome.storage.onChanged.addListener(onStorageChanged);
 }
@@ -222,18 +305,21 @@ function init() {
 // --- Entry Point ---
 
 // Only auto-start in the actual browser extension context.
-if (typeof chrome !== 'undefined' && chrome.storage) {
+if (typeof chrome !== "undefined" && chrome.storage) {
   init();
 }
 
 // --- Exports (used by Jest unit tests) ---
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     DEFAULT_LINE_BREAK_KEY,
     VALID_LINE_BREAK_KEYS,
     isMac,
     sanitizeLineBreakKey,
     matchesLineBreakKey,
+    isEditableElement,
+    isInsideChatPanel,
+    getHostname,
     isGoogleChatInput,
     isSuggestionDropdownOpen,
     insertNewline,

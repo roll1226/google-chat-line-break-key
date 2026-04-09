@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Google Chat Line Break Key",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Google Chatの改行キーを変更できる拡張機能",
   "icons": {
     "16": "icons/icon16.png",
@@ -17,12 +17,14 @@
   "content_scripts": [
     {
       "matches": [
-        "https://chat.google.com/*"
+        "https://chat.google.com/*",
+        "https://mail.google.com/*"
       ],
       "js": [
         "src/content.js"
       ],
-      "run_at": "document_idle"
+      "all_frames": true,
+      "run_at": "document_start"
     }
   ],
   "action": {
