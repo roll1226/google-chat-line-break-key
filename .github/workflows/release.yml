@@ -44,7 +44,7 @@ jobs:
 
       - name: Create extension ZIP
         run: |
-          zip -r googo-chat-line-break-key-${{ steps.tag.outputs.name }}.zip \
+          zip -r google-chat-line-break-key-${{ steps.tag.outputs.name }}.zip \
             manifest.json \
             src/ \
             icons/
@@ -56,4 +56,4 @@ jobs:
         run: |
           gh release create "${TAG}" \
             --generate-notes \
-            "googo-chat-line-break-key-${TAG}.zip"
+            "google-chat-line-break-key-${TAG}.zip"
