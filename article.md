@@ -232,6 +232,7 @@ function isGoogleChatInput(target) {
 
 ### なぜ`data-group-id`が使えるのか
 
+
 これはGoogle ChatがGmail内でチャットルームを識別するために使っている内部属性です。`space/AAQAJ4YAvpc`のようなGoogle ChatのSpaceIDが入っています。外部APIで公開されている値ではなく、この判定はGoogle Chatの内部DOM属性に依存しているため、将来的なUI変更で無効になる可能性があります。そのため定期的なDOM確認は必要です。
 
 ---
