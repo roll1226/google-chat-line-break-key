@@ -100,9 +100,7 @@ window.addEventListener("keydown", handleKeyDown, true);
 //                          true = キャプチャ位相で登録
 ```
 
-> 📸 **画像②：シーケンス図（イベント伝播の比較）**  
-> *通常（バブリング）: Google Chatが先に処理 → 送信されてしまう*  
-> *キャプチャ位相: content.jsが先に処理 → stopImmediatePropagation()で止める*
+![シーケンス図：イベント伝播の比較（バブリング vs キャプチャ位相）](images/event-propagation.png)
 
 Windowでキャプチャ登録することで、イベント伝播のかなり早い段階でキー入力を傍受できます。さらに`event.stopImmediatePropagation()`を呼ぶことで、同じイベントに対する後続リスナーの実行を抑制し、以降のイベント伝播も停止できます。
 
@@ -226,9 +224,7 @@ function isGoogleChatInput(target) {
 
 `chat.google.com`ではすべての編集可能要素がChatのものなので判定不要、`mail.google.com`のときだけ`isInsideChatPanel()`を呼びます。
 
-> 📸 **画像③：シーケンス図（data-group-id DOM探索の様子）**  
-> *Gmailメール作成エリア（data-group-idなし）→ false*  
-> *Google Chat入力エリア（祖先にdata-group-id="space/..."あり）→ true*
+![シーケンス図：data-group-id DOM探索による Gmail / Google Chat 入力エリアの判定](images/data-group-id.png)
 
 ### なぜ`data-group-id`が使えるのか
 

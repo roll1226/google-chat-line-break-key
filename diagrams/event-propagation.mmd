@@ -1,0 +1,32 @@
+sequenceDiagram
+    box rgb(255,235,235) 通常（バブリング）― Enterが送信されてしまう
+        participant U1 as ユーザー
+        participant W1 as Window
+        participant GC1 as Google Chat<br/>ハンドラ
+        participant CS1 as content.js<br/>（バブリング）
+    end
+
+    box rgb(220,240,255) キャプチャ位相 ― content.js が先に傍受する
+        participant U2 as ユーザー
+        participant W2 as Window
+        participant CS2 as content.js<br/>（キャプチャ）
+        participant GC2 as Google Chat<br/>ハンドラ
+    end
+
+    Note over U1,CS1: ❌ バブリング登録の場合
+    U1->>W1: Enterキー押下
+    W1->>GC1: keydown（バブリングで到達）
+    GC1->>GC1: メッセージ送信 🚀
+    GC1-->>CS1: （すでに送信済み）
+    Note over GC1: preventDefault()は<br/>間に合わない
+
+    Note over U2,GC2: ✅ キャプチャ位相登録の場合
+    U2->>W2: Enterキー押下
+    W2->>CS2: keydown（キャプチャで最初に到達）
+    CS2->>CS2: matchesLineBreakKey() チェック
+    CS2->>CS2: event.preventDefault()
+    CS2->>CS2: event.stopImmediatePropagation()
+    CS2->>CS2: execCommand("insertText", "\n")
+    Note over CS2: 改行を挿入 ✏️
+    CS2--xGC2: イベント伝播ここで停止
+    Note over GC2: 送信されない ✅

@@ -1,0 +1,38 @@
+sequenceDiagram
+    box rgb(255,235,235) Gmailメール作成エリア ― data-group-id なし → false
+        participant K1 as keydown イベント
+        participant F1 as isGoogleChatInput()
+        participant P1 as isInsideChatPanel()
+        participant D1 as DOM探索<br/>（上方向）
+    end
+
+    box rgb(220,240,255) Google Chat 入力エリア ― data-group-id あり → true
+        participant K2 as keydown イベント
+        participant F2 as isGoogleChatInput()
+        participant P2 as isInsideChatPanel()
+        participant D2 as DOM探索<br/>（上方向）
+    end
+
+    Note over K1,D1: ❌ Gmail メール作成エリアの場合
+    K1->>F1: target = Gmailコンポーズエリア
+    F1->>F1: isEditableElement() → true
+    F1->>F1: hostname = "mail.google.com"
+    F1->>P1: isInsideChatPanel(target)
+    P1->>D1: target.getAttribute("data-group-id")
+    D1-->>P1: null
+    P1->>D1: parentElement → … → body
+    D1-->>P1: data-group-id なし
+    P1-->>F1: false
+    F1-->>K1: ❌ スキップ（改行挿入しない）
+
+    Note over K2,D2: ✅ Google Chat 入力エリアの場合
+    K2->>F2: target = Chat メッセージ入力
+    F2->>F2: isEditableElement() → true
+    F2->>F2: hostname = "mail.google.com"
+    F2->>P2: isInsideChatPanel(target)
+    P2->>D2: target.getAttribute("data-group-id")
+    D2-->>P2: null
+    P2->>D2: parentElement を順に探索
+    D2-->>P2: data-group-id = "space/AAQAJ4YAvpc" 発見！
+    P2-->>F2: true
+    F2-->>K2: ✅ 改行挿入処理へ進む
