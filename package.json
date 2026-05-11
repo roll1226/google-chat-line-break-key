@@ -7,7 +7,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "generate-icons": "node scripts/generate-icons.js",
-    "generate-diagrams": "mmdc -i diagrams/event-propagation.mmd -o images/event-propagation.png -b white -w 900 --scale 3 && mmdc -i diagrams/data-group-id.mmd -o images/data-group-id.png -b white -w 900 --scale 3"
+    "generate-diagrams": "mmdc -i diagrams/event-propagation.mmd -o images/event-propagation.png -b white -w 900 --scale 3 && mmdc -i diagrams/data-group-id.mmd -o images/data-group-id.png -b white -w 900 --scale 3",
+    "generate-table-image": "node scripts/generate-table-image.js"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.2",
