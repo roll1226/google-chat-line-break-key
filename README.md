@@ -1,4 +1,4 @@
-# googo-chat-line-break-key
+# google-chat-line-break-key
 
 Google Chatの改行キーを変更できるChrome拡張機能です。
 
