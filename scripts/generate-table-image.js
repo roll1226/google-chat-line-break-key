@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Generates images/table.png — a styled HTML table screenshot.
@@ -9,29 +9,33 @@
  * Usage:  node scripts/generate-table-image.js
  */
 
-const puppeteer = require('puppeteer');
-const path = require('path');
+const puppeteer = require("puppeteer");
+const path = require("path");
 
 const ROWS = [
   {
-    point: 'Google Chatより先にEnterを処理したい',
-    solution: 'キャプチャ位相（<code>addEventListener(..., true)</code>）＋<code>run_at: document_start</code>',
+    point: "Google Chatより先にEnterを処理したい",
+    solution:
+      "キャプチャ位相（<code>addEventListener(..., true)</code>）＋<code>run_at: document_start</code>",
   },
   {
-    point: 'IMEの変換確定Enterを無視したい',
-    solution: '<code>event.isComposing</code>チェック（旧ブラウザ向けに<code>keyCode 229</code>も）',
+    point: "IMEの変換確定Enterを無視したい",
+    solution:
+      "<code>event.isComposing</code>チェック（旧ブラウザ向けに<code>keyCode 229</code>も）",
   },
   {
-    point: 'GmailでChat入力とメール作成を区別したい',
+    point: "GmailでChat入力とメール作成を区別したい",
     solution: '祖先要素の<code>data-group-id="space/..."</code>をDOM探索',
   },
   {
-    point: 'ページリロードなしで設定を反映したい',
-    solution: '<code>chrome.storage.onChanged</code>でコンテンツスクリプトをリアクティブに更新',
+    point: "ページリロードなしで設定を反映したい",
+    solution:
+      "<code>chrome.storage.onChanged</code>でコンテンツスクリプトをリアクティブに更新",
   },
   {
-    point: 'Chrome APIをモック化してユニットテストしたい',
-    solution: 'CommonJS条件エクスポート＋<code>jest.resetModules()</code>でモジュール状態分離',
+    point: "Chrome APIをモック化してユニットテストしたい",
+    solution:
+      "CommonJS条件エクスポート＋<code>jest.resetModules()</code>でモジュール状態分離",
   },
 ];
 
@@ -39,12 +43,12 @@ function buildHtml(rows) {
   const rowsHtml = rows
     .map(
       ({ point, solution }, i) => `
-    <tr class="${i % 2 === 0 ? 'row-even' : 'row-odd'}">
+    <tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
       <td class="cell-point">${point}</td>
       <td class="cell-solution">${solution}</td>
-    </tr>`
+    </tr>`,
     )
-    .join('');
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -122,21 +126,21 @@ function buildHtml(rows) {
 }
 
 async function main() {
-  const outPath = path.resolve(__dirname, '../images/table.png');
+  const outPath = path.resolve(__dirname, "../images/table.png");
 
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   try {
     const page = await browser.newPage();
     // Scale up for retina-quality output
     await page.setViewport({ width: 1200, height: 800, deviceScaleFactor: 2 });
-    await page.setContent(buildHtml(ROWS), { waitUntil: 'networkidle0' });
+    await page.setContent(buildHtml(ROWS), { waitUntil: "networkidle0" });
 
-    const table = await page.$('#tbl');
-    if (!table) throw new Error('Table element not found in generated HTML');
+    const table = await page.$("#tbl");
+    if (!table) throw new Error("Table element not found in generated HTML");
 
     await table.screenshot({ path: outPath });
     console.log(`Saved: ${outPath}`);
