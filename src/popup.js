@@ -1,10 +1,15 @@
-'use strict';
+"use strict";
 
 /** Default line break key */
-const DEFAULT_LINE_BREAK_KEY = 'Enter';
+const DEFAULT_LINE_BREAK_KEY = "Enter";
 
 /** Allowed values for the line break key setting */
-const VALID_LINE_BREAK_KEYS = ['Enter', 'Shift+Enter', 'Ctrl+Enter', 'Alt+Enter'];
+const VALID_LINE_BREAK_KEYS = [
+  "Enter",
+  "Shift+Enter",
+  "Ctrl+Enter",
+  "Alt+Enter",
+];
 
 /**
  * Returns the value if it is a recognised line break key, otherwise returns
@@ -27,11 +32,11 @@ function sanitizeLineBreakKey(value) {
  * @returns {boolean}
  */
 function isMac() {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator === "undefined") return false;
   if (navigator.userAgentData) {
-    return navigator.userAgentData.platform === 'macOS';
+    return navigator.userAgentData.platform === "macOS";
   }
-  return /Mac|MacIntel|MacPPC|Mac68K/.test(navigator.platform || '');
+  return /Mac|MacIntel|MacPPC|Mac68K/.test(navigator.platform || "");
 }
 
 /**
@@ -42,17 +47,17 @@ function isMac() {
 function getPlatformKeyLabels() {
   if (isMac()) {
     return {
-      ctrlLabel: '⌘ + Enter',
-      ctrlDesc: '⌘+Enterで改行（Macの場合）',
-      altLabel: '⌥ + Enter',
-      altDesc: '⌥+Enterで改行（Macの場合）',
+      ctrlLabel: "⌘ + Enter",
+      ctrlDesc: "⌘+Enterで改行（Macの場合）",
+      altLabel: "⌥ + Enter",
+      altDesc: "⌥+Enterで改行（Macの場合）",
     };
   }
   return {
-    ctrlLabel: 'Ctrl + Enter',
-    ctrlDesc: 'Ctrl+Enterで改行',
-    altLabel: 'Alt + Enter',
-    altDesc: 'Alt+Enterで改行',
+    ctrlLabel: "Ctrl + Enter",
+    ctrlDesc: "Ctrl+Enterで改行",
+    altLabel: "Alt + Enter",
+    altDesc: "Alt+Enterで改行",
   };
 }
 
@@ -63,10 +68,10 @@ function getPlatformKeyLabels() {
 function updatePlatformLabels() {
   const { ctrlLabel, ctrlDesc, altLabel, altDesc } = getPlatformKeyLabels();
 
-  const ctrlLabelEl = document.getElementById('ctrl-enter-label');
-  const ctrlDescEl = document.getElementById('ctrl-enter-desc');
-  const altLabelEl = document.getElementById('alt-enter-label');
-  const altDescEl = document.getElementById('alt-enter-desc');
+  const ctrlLabelEl = document.getElementById("ctrl-enter-label");
+  const ctrlDescEl = document.getElementById("ctrl-enter-desc");
+  const altLabelEl = document.getElementById("alt-enter-label");
+  const altDescEl = document.getElementById("alt-enter-desc");
 
   if (ctrlLabelEl) ctrlLabelEl.textContent = ctrlLabel;
   if (ctrlDescEl) ctrlDescEl.textContent = ctrlDesc;
@@ -86,9 +91,9 @@ function updatePlatformLabels() {
 function syncSelectedClass() {
   const radios = document.querySelectorAll('input[name="lineBreakKey"]');
   radios.forEach((radio) => {
-    const option = radio.closest('.option');
+    const option = radio.closest(".option");
     if (!option) return;
-    option.classList.toggle('selected', radio.checked);
+    option.classList.toggle("selected", radio.checked);
   });
 }
 
@@ -115,7 +120,7 @@ function handleChange(event) {
   const selectedKey = sanitizeLineBreakKey(event.target.value);
   syncSelectedClass();
   chrome.storage.sync.set({ lineBreakKey: selectedKey }, () => {
-    showStatus('保存しました ✓');
+    showStatus("保存しました ✓");
   });
 }
 
@@ -127,15 +132,15 @@ let statusTimeoutId = null;
  * @param {string} message
  */
 function showStatus(message) {
-  const statusEl = document.getElementById('status');
+  const statusEl = document.getElementById("status");
   if (!statusEl) return;
 
   statusEl.textContent = message;
-  statusEl.classList.add('show');
+  statusEl.classList.add("show");
 
   clearTimeout(statusTimeoutId);
   statusTimeoutId = setTimeout(() => {
-    statusEl.classList.remove('show');
+    statusEl.classList.remove("show");
   }, 2000);
 }
 
@@ -149,23 +154,23 @@ function init() {
 
   const radios = document.querySelectorAll('input[name="lineBreakKey"]');
   radios.forEach((radio) => {
-    radio.addEventListener('change', handleChange);
+    radio.addEventListener("change", handleChange);
   });
 }
 
 // --- Entry Point ---
 
 // Auto-initialize only when running inside the actual browser extension.
-if (typeof chrome !== 'undefined' && chrome.storage) {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+if (typeof chrome !== "undefined" && chrome.storage) {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
 }
 
 // --- Exports (used by Jest unit tests) ---
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     DEFAULT_LINE_BREAK_KEY,
     VALID_LINE_BREAK_KEYS,
